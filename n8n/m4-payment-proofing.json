@@ -1,0 +1,716 @@
+{
+  "name": "M4 · Payment proofing (contractor pay)",
+  "nodes": [
+    {
+      "id": "c4d1e2f3-0001-4a5b-9c6d-000000000001",
+      "name": "Every 15 minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "c4d1e2f3-0002-4a5b-9c6d-000000000002",
+      "name": "Settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "s1",
+              "name": "shadowMode",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "s2",
+              "name": "alertTo",
+              "value": "office@example.com",
+              "type": "string"
+            },
+            {
+              "id": "s3",
+              "name": "gmailLabel",
+              "value": "Bank/Transfers",
+              "type": "string"
+            },
+            {
+              "id": "s4",
+              "name": "doneLabel",
+              "value": "Bank/Proofed",
+              "type": "string"
+            },
+            {
+              "id": "s5",
+              "name": "windowDays",
+              "value": 4,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "c4d1e2f3-0003-4a5b-9c6d-000000000003",
+      "name": "Read pay run",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "https://docs.google.com/spreadsheets/d/REPLACE_WITH_YOUR_SHEET_ID/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Pay Run"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE",
+          "name": "Google Sheets (Summit payroll)"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "c4d1e2f3-0004-4a5b-9c6d-000000000004",
+      "name": "Read payees",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "https://docs.google.com/spreadsheets/d/REPLACE_WITH_YOUR_SHEET_ID/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Payees"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE",
+          "name": "Google Sheets (Summit payroll)"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "c4d1e2f3-0005-4a5b-9c6d-000000000005",
+      "name": "Read proofing log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        880,
+        300
+      ],
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "https://docs.google.com/spreadsheets/d/REPLACE_WITH_YOUR_SHEET_ID/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Proofing Log"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE",
+          "name": "Google Sheets (Summit payroll)"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "c4d1e2f3-0006-4a5b-9c6d-000000000006",
+      "name": "Get bank emails",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1100,
+        300
+      ],
+      "parameters": {
+        "operation": "getAll",
+        "returnAll": false,
+        "limit": 50,
+        "simple": false,
+        "filters": {
+          "q": "=label:\"{{ $('Settings').first().json.gmailLabel }}\" -label:\"{{ $('Settings').first().json.doneLabel }}\" newer_than:30d"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE",
+          "name": "Gmail (payroll@example.com)"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "c4d1e2f3-0007-4a5b-9c6d-000000000007",
+      "name": "Prove transfers",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Reads each new bank confirmation and proves it against the Pay Run sheet.\n// The functions below are the same ones as apps-script/payment-proofing.gs (tested in Node).\n// Output: one item per new email with action = proven | person | skipped.\nvar MON = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];\nvar DAY_MS = 86400000;\n// ---------- Reading the email (pure; tested in Node) ----------\n\n/** Whole cents from \"$1,240.00\", \"1240.5\" or a number. NaN if it isn't money. */\nfunction toCents_(v) {\n  if (typeof v === 'number') return Math.round(v * 100);\n  var s = String(v == null ? '' : v).replace(/[$,\\s]/g, '');\n  var m = /^(-)?(\\d+)(?:\\.(\\d{1,2}))?$/.exec(s);\n  if (!m) return NaN;\n  var c = parseInt(m[2], 10) * 100 + parseInt(((m[3] || '') + '00').slice(0, 2), 10);\n  return m[1] ? -c : c;\n}\nfunction money_(c) {\n  if (c == null || isNaN(c)) return '';\n  var neg = c < 0; c = Math.abs(Math.round(c));\n  return (neg ? '-' : '') + '$' + Math.floor(c / 100).toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ',') + '.' + ('0' + (c % 100)).slice(-2);\n}\nfunction pad_(n) { return ('0' + n).slice(-2); }\nfunction dayKey_(d) { d = new Date(d); return d.getFullYear() + '-' + pad_(d.getMonth() + 1) + '-' + pad_(d.getDate()); }\n\n/** \"Nov 6\", \"Nov 6, 2026\", \"11/06/2026\" → \"2026-11-06\". No year: the year the email arrived. */\nfunction parseDate_(s, received) {\n  if (!s) return null;\n  s = String(s).trim();\n  var y = null, mo, d, r;\n  if ((r = /^([A-Za-z]{3,9})\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?(?:,?\\s+(\\d{4}))?$/.exec(s))) {\n    mo = MON.indexOf(r[1].slice(0, 3).toLowerCase()); d = +r[2]; if (r[3]) y = +r[3];\n    if (mo < 0) return null;\n  } else if ((r = /^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{4})$/.exec(s))) { mo = +r[1] - 1; d = +r[2]; y = +r[3]; }\n  else if ((r = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(s))) { y = +r[1]; mo = +r[2] - 1; d = +r[3]; }\n  else return null;\n  if (y == null) {\n    var rec = new Date(received || Date.now());\n    y = rec.getFullYear();\n    if (new Date(y, mo, d).getTime() > rec.getTime() + DAY_MS) y -= 1;\n  }\n  var dt = new Date(y, mo, d, 12);\n  if (dt.getMonth() !== mo) return null;\n  return dayKey_(dt);\n}\n\nvar RX_ = {\n  summary: /You sent\\s+\\$\\s?([\\d,]+\\.\\d{2})\\s+to\\s+(.+?)\\s*[·•|–-]\\s*ref(?:erence)?\\s*[:#]?\\s*([A-Z0-9][A-Z0-9-]{2,})\\s*[·•|–-]\\s*([A-Za-z]{3,9}\\.?\\s+\\d{1,2}(?:,?\\s+\\d{4})?)/i,\n  amount: /^\\s*Amount:\\s*\\$\\s?([\\d,]+\\.\\d{2})\\s*$/im,\n  payee: /^\\s*(?:To|Recipient|Payee):\\s*(.+?)\\s*(?:[•*]{2,}\\s?(\\d{4}))?\\s*$/i,\n  ref: /^\\s*(?:Reference|Ref)\\s*(?:#|no\\.?)?\\s*:\\s*([A-Z0-9][A-Z0-9-]{2,})\\s*$/im,\n  date: /^\\s*(?:Date|Transfer date|Sent):\\s*([A-Za-z]{3,9}\\.?\\s+\\d{1,2},?\\s+\\d{4}|\\d{1,2}\\/\\d{1,2}\\/\\d{4})/im,\n  memo: /^\\s*Memo:\\s*(.*)$/im,\n  conf: /^\\s*Confirmation(?:\\s*(?:#|number|no\\.?))?\\s*:\\s*([A-Z0-9][A-Z0-9-]{5,})\\s*$/im,\n  jobs: /\\bSH-\\d{4}\\b/g\n};\n\n/** Reads a bank confirmation. ok=false (with `missing`) if any field can't be found. */\nfunction parseBankEmail_(text, received) {\n  var t = String(text || '').replace(/\\r/g, '');\n  var out = { ok: false, amountCents: null, payee: null, account: null, ref: null, date: null, memo: '', memoJobs: [], confirmation: null, missing: [] };\n  var s = RX_.summary.exec(t), x;\n  if (s) {\n    out.amountCents = toCents_(s[1]); out.payee = s[2].trim(); out.ref = s[3].toUpperCase(); out.date = parseDate_(s[4], received);\n  } else {\n    if ((x = RX_.amount.exec(t))) out.amountCents = toCents_(x[1]);\n    if ((x = RX_.ref.exec(t))) out.ref = x[1].toUpperCase();\n    if ((x = RX_.date.exec(t))) out.date = parseDate_(x[1].replace(/,\\s*/g, ', '), received);\n  }\n  var lines = t.split('\\n');\n  for (var i = 0; i < lines.length; i++) {\n    var p = RX_.payee.exec(lines[i]);\n    if (p) { if (!out.payee) out.payee = p[1].replace(/\\s{2,}.*$/, '').trim(); if (p[2]) out.account = p[2]; break; }\n  }\n  if ((x = RX_.memo.exec(t))) { out.memo = x[1].trim() === '(none)' ? '' : x[1].trim(); out.memoJobs = out.memo.match(RX_.jobs) || []; }\n  if ((x = RX_.conf.exec(t))) out.confirmation = x[1].toUpperCase();\n  if (out.amountCents == null || isNaN(out.amountCents)) out.missing.push('amount');\n  if (!out.payee) out.missing.push('payee');\n  if (!out.ref) out.missing.push('reference');\n  if (!out.date) out.missing.push('date');\n  if (!out.confirmation) out.missing.push('confirmation #');\n  out.ok = out.missing.length === 0;\n  return out;\n}\n\n// ---------- The checks (pure; tested in Node) ----------\n\nfunction norm_(s) { return String(s || '').toLowerCase().replace(/[.,'’]/g, ' ').replace(/\\s+/g, ' ').trim(); }\n\n/** Every set of items whose cents add up to target exactly (stops after `limit`). */\nfunction subsetSum_(items, target, limit) {\n  limit = limit || 5;\n  var xs = items.filter(function (i) { return i.cents > 0; }).sort(function (a, b) { return b.cents - a.cents; });\n  var suffix = [], acc = 0, out = [];\n  for (var i = xs.length - 1; i >= 0; i--) { acc += xs[i].cents; suffix[i] = acc; }\n  (function go(k, left, pick) {\n    if (out.length >= limit) return;\n    if (left === 0 && pick.length) { out.push(pick.slice()); return; }\n    if (k >= xs.length || left < 0 || suffix[k] < left) return;\n    pick.push(xs[k].id); go(k + 1, left - xs[k].cents, pick); pick.pop();\n    go(k + 1, left, pick);\n  })(0, target, []);\n  return out;\n}\n\n/**\n * ctx: { lines: [{jobId, techId, payCents}] (current run), history: {jobId: {techId, payCents, paidAt, ref}},\n *        techs: {techId: {name, ref, account, names[]}}, window: {from, to} (day keys),\n *        covered: {jobId: confirmation}, transfers: [{techId, amountCents, ref, confirmation, outcome}] }\n */\nfunction proofTransfer_(p, ctx) {\n  var checks = [];\n  function add(k, name, pass, label) { checks.push({ k: k, name: name, pass: pass, label: label }); }\n  var res = { outcome: 'person', kind: null, techId: null, jobIds: [], candidates: [], checks: checks, doublePay: false, diffCents: null };\n  if (!p.ok) {\n    add('read', 'Email read', false, 'missing ' + p.missing.join(', '));\n    return finish_(res, p, ctx, 'unreadable');\n  }\n  var payeeTech = null, refTech = null, aliasOk = false;\n  Object.keys(ctx.techs).forEach(function (id) {\n    var t = ctx.techs[id];\n    if (!payeeTech && t.names.some(function (n) { return norm_(n) === norm_(p.payee); })) payeeTech = id;\n    if (t.ref === p.ref) refTech = id;\n  });\n  var techId = payeeTech || refTech;\n  var tech = techId ? ctx.techs[techId] : null;\n  res.techId = techId;\n  if (payeeTech && p.account && ctx.techs[payeeTech].account && p.account !== String(ctx.techs[payeeTech].account)) add('payee', 'Payee matches', false, 'account ••••' + p.account + ' is not the saved ••••' + ctx.techs[payeeTech].account);\n  else if (payeeTech) { aliasOk = true; add('payee', 'Payee matches', true, p.payee + ' = ' + tech.name); }\n  else add('payee', 'Payee matches', false, '\"' + p.payee + '\" is not a known payee');\n\n  var lines = tech ? ctx.lines.filter(function (l) { return l.techId === techId; }) : [];\n  if (!tech || !lines.length) {\n    add('amount', 'Amount exact to the cent', false, 'no pay-run line to compare with');\n    add('ref', 'Reference matches', false, p.ref + ' is not a pay-run reference');\n    return finish_(res, p, ctx, 'no_line');\n  }\n  var byJob = {};\n  lines.forEach(function (l) { byJob[l.jobId] = l; });\n  function job(id) { return byJob[id] || ctx.history[id] || (ctx.allJobs && ctx.allJobs[id]) || null; }\n  var owed = lines.filter(function (l) { return !ctx.covered[l.jobId]; });\n  var owedCents = owed.reduce(function (s, l) { return s + l.payCents; }, 0);\n  var ids = [], how;\n  if (p.memoJobs.length) { ids = p.memoJobs.slice(); how = 'memo'; }\n  else {\n    var sols = subsetSum_(owed.map(function (l) { return { id: l.jobId, cents: l.payCents }; }), p.amountCents);\n    if (!sols.length) sols = subsetSum_(lines.map(function (l) { return { id: l.jobId, cents: l.payCents }; }), p.amountCents);\n    if (sols.length === 1) { ids = sols[0]; how = 'sum'; } else how = sols.length ? 'ambiguous' : 'none';\n  }\n  ids.sort();\n  res.jobIds = ids;\n  var known = ids.map(job).filter(Boolean);\n  var sum = known.reduce(function (s, l) { return s + l.payCents; }, 0);\n  if (how === 'ambiguous') { add('amount', 'Amount exact to the cent', false, 'more than one set of jobs adds up to it'); res.kind = 'ambiguous'; }\n  else if (how === 'none') { res.diffCents = p.amountCents - owedCents; add('amount', 'Amount exact to the cent', false, money_(Math.abs(res.diffCents)) + (res.diffCents < 0 ? ' short of ' : ' over ') + money_(owedCents)); }\n  else if (known.length !== ids.length) add('amount', 'Amount exact to the cent', false, 'memo lists an unknown job');\n  else if (sum !== p.amountCents) { res.diffCents = p.amountCents - sum; add('amount', 'Amount exact to the cent', false, money_(Math.abs(res.diffCents)) + (res.diffCents < 0 ? ' short' : ' over')); }\n  else add('amount', 'Amount exact to the cent', true, ids.join(' + ') + ' = ' + money_(p.amountCents));\n\n  var inWin = p.date >= ctx.window.from && p.date <= ctx.window.to;\n  add('date', 'Date inside the pay window', inWin, p.date + (inWin ? ' is inside ' : ' is outside ') + ctx.window.from + ' to ' + ctx.window.to);\n  add('ref', 'Reference matches', p.ref === tech.ref, p.ref === tech.ref ? p.ref : p.ref + ', expected ' + tech.ref);\n\n  var dup = ctx.transfers.filter(function (t) { return t.outcome === 'proven' && t.techId === techId && t.amountCents === p.amountCents && t.ref === p.ref && t.confirmation !== p.confirmation; })[0];\n  var earlier = known.filter(function (l) { return ctx.history[l.jobId]; });\n  var again = known.filter(function (l) { return ctx.covered[l.jobId]; });\n  if (dup) { res.doublePay = true; res.kind = 'duplicate'; add('twice', 'No job paid twice', false, 'same payee, amount and ref as ' + dup.confirmation); }\n  else if (earlier.length) { res.doublePay = true; res.kind = 'paid_twice'; add('twice', 'No job paid twice', false, earlier.map(function (l) { return l.jobId + ' paid ' + l.paidAt + ' (' + l.ref + ')'; }).join('; ')); }\n  else if (again.length) { res.doublePay = true; res.kind = 'paid_twice'; add('twice', 'No job paid twice', false, again.map(function (l) { return l.jobId; }).join(', ') + ' already proven paid'); }\n  else if (ids.length) add('twice', 'No job paid twice', true, 'none paid before');\n  else add('twice', 'No job paid twice', null, 'no jobs matched');\n\n  if (ids.length) {\n    var wrong = ids.filter(function (id) { var l = job(id); return !l || l.techId !== techId; });\n    var outside = known.filter(function (l) { return l.techId === techId && !byJob[l.jobId] && !ctx.history[l.jobId]; });\n    if (wrong.length) add('owner', 'Every job is that tech\\'s', false, wrong.join(', ') + ' is not ' + tech.name + '\\'s');\n    else if (outside.length) add('owner', 'Every job is that tech\\'s', false, outside.map(function (l) { return l.jobId; }).join(', ') + ' is not in this pay run');\n    else add('owner', 'Every job is that tech\\'s', true, 'all ' + tech.name + '\\'s');\n  } else add('owner', 'Every job is that tech\\'s', null, 'no jobs matched');\n\n  if (!aliasOk && !res.kind) res.kind = 'payee';\n  return finish_(res, p, ctx, null, owed, owedCents, tech);\n}\n\nvar TITLES_ = { unreadable: 'Couldn\\'t read the email', no_line: 'No matching pay-run line', duplicate: 'Possible double payment: sent twice',\n  paid_twice: 'Possible double payment: job already paid', payee: 'Wrong payee', amount: 'Amount doesn\\'t match', ambiguous: 'More than one set of jobs fits',\n  date: 'Outside the date window', ref: 'Reference doesn\\'t match', owner: 'Job isn\\'t that tech\\'s' };\n\nfunction finish_(res, p, ctx, kind, owed, owedCents, tech) {\n  var allPass = res.checks.length >= 6 && res.checks.every(function (c) { return c.pass === true; });\n  if (allPass) { res.outcome = 'proven'; res.kind = null; res.title = 'Proven'; res.why = money_(p.amountCents) + ' pays ' + res.jobIds.join(', ') + ' exactly.'; return res; }\n  var failed = res.checks.filter(function (c) { return c.pass === false; }).map(function (c) { return c.k; });\n  res.kind = kind || res.kind || ['payee', 'amount', 'owner', 'date', 'ref', 'twice'].filter(function (k) { return failed.indexOf(k) >= 0; })[0] || 'amount';\n  res.title = TITLES_[res.kind];\n  var owedIds = (owed || []).map(function (l) { return l.jobId; });\n  res.candidates = (res.kind === 'duplicate' || res.kind === 'paid_twice' || res.kind === 'no_line') ? [] :\n    (res.jobIds.length ? res.jobIds.filter(function (id) { return owedIds.indexOf(id) >= 0; }) : owedIds);\n  var name = tech ? tech.name : '', d = res.diffCents;\n  var whyBy = {\n    unreadable: 'Couldn\\'t find the ' + p.missing.join(', ') + '. Open the email and enter the details by hand if it is a real transfer.',\n    no_line: 'Nobody in the pay run is called \"' + p.payee + '\" and ' + p.ref + ' isn\\'t a pay-run reference. Probably a supplier payment in the bank label. Nothing marked paid.',\n    duplicate: 'Possible double payment: ' + name + ' was already paid ' + money_(p.amountCents) + ' with ref ' + p.ref + '. Ask the bank to recall one, or ask ' + name + ' to return it or hold it against the next run.',\n    paid_twice: 'Possible double payment: ' + res.jobIds.join(', ') + ' was already paid. Ask ' + name + ' to return ' + money_(p.amountCents) + ' or deduct it from the next run.',\n    payee: 'The bank shows payee \"' + p.payee + '\"' + (p.account ? ' ••••' + p.account : '') + ', but the ref and amount are ' + name + '\\'s. Call the bank before marking anything paid; if it went to the wrong person, ask for a recall.',\n    amount: d == null ? 'The amount doesn\\'t match the jobs in the memo.' : 'Transfer is ' + money_(Math.abs(d)) + (d < 0 ? ' short of ' : ' over ') + name + '\\'s pay-run total of ' + money_(owedCents) + '. ' + (d < 0 ? 'Check with the bank or ' + name + ', then send a ' + money_(-d) + ' top-up.' : 'Ask ' + name + ' to return ' + money_(d) + ' or hold it against the next run.'),\n    ambiguous: 'More than one set of ' + name + '\\'s jobs adds up to ' + money_(p.amountCents) + '. Ask which jobs it was for and add them to the memo.',\n    date: 'Dated ' + p.date + ', outside the pay window (' + (ctx.window.from) + ' to ' + ctx.window.to + '). It can\\'t be the payment for these jobs. Check the date with the bank.',\n    ref: 'Reference ' + p.ref + ' doesn\\'t match ' + name + '\\'s ' + (tech ? tech.ref : '') + '. Check who it was for.',\n    owner: 'A job in the memo isn\\'t ' + name + '\\'s, or isn\\'t in this pay run. Check the memo with the office.'\n  };\n  res.why = whyBy[res.kind];\n  return res;\n}\n\n\n// ---------- Build the context from the sheets, then prove each new email ----------\nconst cfg = $('Settings').first().json;\nconst run = $('Read pay run').all().map(i => i.json);\nconst payees = $('Read payees').all().map(i => i.json);\nconst log = $('Read proofing log').all().map(i => i.json).filter(r => r['Message ID']);\nconst emails = $('Get bank emails').all().map(i => i.json).filter(m => m.id);\nconst runDays = run.map(r => r['Run Date'] ? dayKey_(r['Run Date']) : null).filter(Boolean).sort();\nconst current = runDays[runDays.length - 1];\nconst ctx = { lines: [], history: {}, techs: {}, covered: {}, transfers: [], allJobs: {} };\nctx.window = { from: current, to: dayKey_(new Date(current + 'T12:00:00').getTime() + Number(cfg.windowDays || 4) * DAY_MS) };\nfor (const r of payees) {\n  const names = String(r['Known Names'] || '').split(',').map(s => s.trim()).filter(Boolean);\n  if (!names.includes(String(r.Tech))) names.unshift(String(r.Tech));\n  ctx.techs[r.Tech] = { name: r.Tech, account: String(r['Account Last 4'] || ''), names, ref: null };\n}\nfor (const r of run) {\n  const l = { jobId: String(r['Job ID']), techId: String(r.Tech), payCents: toCents_(r.Pay), ref: String(r['Expected Ref'] || '') };\n  ctx.allJobs[l.jobId] = l;\n  const paid = String(r.Status).toLowerCase() === 'paid';\n  if (dayKey_(r['Run Date']) === current) {\n    ctx.lines.push(l);\n    if (ctx.techs[l.techId]) ctx.techs[l.techId].ref = l.ref;\n    if (paid) ctx.covered[l.jobId] = String(r.Confirmation || 'paid');\n  } else if (paid) ctx.history[l.jobId] = { jobId: l.jobId, techId: l.techId, payCents: l.payCents, ref: String(r['Paid Ref'] || l.ref), paidAt: r['Paid At'] ? dayKey_(r['Paid At']) : dayKey_(r['Run Date']) };\n}\n// Never twice: emails and confirmation #s this mode already handled. Shadow results don't block a live run.\nconst mine = cfg.shadowMode ? ['would-prove', 'would-hold', 'would-skip'] : ['proven', 'person', 'skipped', 'error'];\nconst seenIds = {}, seenConf = {};\nfor (const r of log) {\n  if (!mine.includes(String(r.Result))) continue;\n  seenIds[r['Message ID']] = true;\n  if (r.Confirmation) seenConf[String(r.Confirmation)] = true;\n  if (r.Result === 'proven' || r.Result === 'would-prove') {\n    ctx.transfers.push({ techId: String(r.Tech), amountCents: toCents_(r.Amount), ref: String(r.Ref), confirmation: String(r.Confirmation), outcome: 'proven' });\n    if (cfg.shadowMode) String(r.Jobs || '').split(/,\\s*/).filter(Boolean).forEach(j => { ctx.covered[j] = String(r.Confirmation); });\n  }\n}\nconst out = [];\nemails.sort((a, b) => new Date(a.date) - new Date(b.date));\nfor (const m of emails) {\n  if (seenIds[m.id]) continue;\n  seenIds[m.id] = true;\n  const body = m.text || m.textPlain || m.snippet || '';\n  const p = parseBankEmail_(body, new Date(m.date || Date.now()));\n  const base = { messageId: m.id, shadow: !!cfg.shadowMode, confirmation: p.confirmation || '', payee: p.payee || '', amount: money_(p.amountCents), ref: p.ref || '', date: p.date || '', body };\n  if (p.confirmation && seenConf[p.confirmation]) {\n    out.push({ json: Object.assign(base, { action: 'skipped', result: cfg.shadowMode ? 'would-skip' : 'skipped', jobs: '', tech: '', note: 'Same confirmation # as an email already handled. Not a second transfer.' }) });\n    continue;\n  }\n  const r = proofTransfer_(p, ctx);\n  ctx.transfers.push({ techId: r.techId, amountCents: p.amountCents, ref: p.ref, confirmation: p.confirmation, outcome: r.outcome });\n  if (p.confirmation) seenConf[p.confirmation] = true;\n  if (r.outcome === 'proven') r.jobIds.forEach(j => { ctx.covered[j] = p.confirmation; });\n  const failed = r.checks.filter(c => c.pass === false).map(c => c.name + ': ' + c.label).join('; ');\n  out.push({ json: Object.assign(base, {\n    action: r.outcome, result: r.outcome === 'proven' ? (cfg.shadowMode ? 'would-prove' : 'proven') : (cfg.shadowMode ? 'would-hold' : 'person'),\n    jobs: (r.outcome === 'proven' ? r.jobIds : r.candidates).join(', '), jobIds: r.jobIds, tech: r.techId || '', title: r.title, why: r.why, failed,\n    doublePay: !!r.doublePay,\n    note: r.outcome === 'proven' ? (cfg.shadowMode ? 'WOULD mark ' + r.jobIds.join(', ') + ' paid. ' : 'Marked paid. ') + r.why : (cfg.shadowMode ? 'WOULD send to a person: ' : '') + r.title + '. ' + failed,\n  }) });\n}\nreturn out;\n"
+      }
+    },
+    {
+      "id": "c4d1e2f3-0008-4a5b-9c6d-000000000008",
+      "name": "Append to proofing log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1600,
+        520
+      ],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "https://docs.google.com/spreadsheets/d/REPLACE_WITH_YOUR_SHEET_ID/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Proofing Log"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now.toISO() }}",
+            "Message ID": "={{ $json.messageId }}",
+            "Confirmation": "={{ $json.confirmation }}",
+            "Result": "={{ $json.result }}",
+            "Jobs": "={{ $json.jobs }}",
+            "Tech": "={{ $json.tech }}",
+            "Amount": "={{ $json.amount }}",
+            "Ref": "={{ $json.ref }}",
+            "Note": "={{ $json.note }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE",
+          "name": "Google Sheets (Summit payroll)"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "c4d1e2f3-0009-4a5b-9c6d-000000000009",
+      "name": "Live and proven?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        100
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ !$json.shadow && $json.action === 'proven' }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "c4d1e2f3-0010-4a5b-9c6d-000000000010",
+      "name": "One item per job",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1820,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Only proven, live transfers reach here. One item per job to mark Paid.\nconst out = [];\nfor (const i of $input.all()) for (const j of i.json.jobIds) out.push({ json: { 'Job ID': j, ref: i.json.ref, confirmation: i.json.confirmation } });\nreturn out;"
+      }
+    },
+    {
+      "id": "c4d1e2f3-0011-4a5b-9c6d-000000000011",
+      "name": "Mark job paid",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2040,
+        0
+      ],
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "https://docs.google.com/spreadsheets/d/REPLACE_WITH_YOUR_SHEET_ID/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Pay Run"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Job ID": "={{ $json[\"Job ID\"] }}",
+            "Status": "Paid",
+            "Paid Ref": "={{ $json.ref }}",
+            "Confirmation": "={{ $json.confirmation }}",
+            "Paid At": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [
+            "Job ID"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE",
+          "name": "Google Sheets (Summit payroll)"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "c4d1e2f3-0012-4a5b-9c6d-000000000012",
+      "name": "Live and needs a person?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ !$json.shadow && $json.action === 'person' }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "c4d1e2f3-0013-4a5b-9c6d-000000000013",
+      "name": "Add to Needs a Person",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1820,
+        260
+      ],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "https://docs.google.com/spreadsheets/d/REPLACE_WITH_YOUR_SHEET_ID/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Needs a Person"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now.toISO() }}",
+            "Message ID": "={{ $json.messageId }}",
+            "Confirmation": "={{ $json.confirmation }}",
+            "Payee": "={{ $json.payee }}",
+            "Amount": "={{ $json.amount }}",
+            "Ref": "={{ $json.ref }}",
+            "Date": "={{ $json.date }}",
+            "Problem": "={{ $json.title }}",
+            "Why and next step": "={{ $json.why }}",
+            "Jobs it might cover": "={{ $json.jobs }}",
+            "Status": "Open"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE",
+          "name": "Google Sheets (Summit payroll)"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "c4d1e2f3-0014-4a5b-9c6d-000000000014",
+      "name": "Email a person",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2040,
+        260
+      ],
+      "parameters": {
+        "sendTo": "={{ $('Settings').first().json.alertTo }}",
+        "subject": "=[Payment proofing] Needs a person: {{ $('Live and needs a person?').item.json.title }}{{ $('Live and needs a person?').item.json.doublePay ? ' (possible double payment)' : '' }}",
+        "emailType": "text",
+        "message": "={{ $('Live and needs a person?').item.json.why }}\n\nFailed checks: {{ $('Live and needs a person?').item.json.failed }}\n\nNothing was marked paid. Details are in the Needs a Person sheet.\n\n---- The email ----\n{{ $('Live and needs a person?').item.json.body }}",
+        "options": {}
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE",
+          "name": "Gmail (payroll@example.com)"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "c4d1e2f3-0015-4a5b-9c6d-000000000015",
+      "name": "Live?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        720
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ !$json.shadow }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "c4d1e2f3-0016-4a5b-9c6d-000000000016",
+      "name": "Add done label",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1820,
+        720
+      ],
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.messageId }}",
+        "labelIds": [
+          "REPLACE_WITH_DONE_LABEL_ID"
+        ]
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE",
+          "name": "Gmail (payroll@example.com)"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "c4d1e2f3-0017-4a5b-9c6d-000000000017",
+      "name": "Note: safety rules",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1300,
+        -260
+      ],
+      "parameters": {
+        "width": 560,
+        "height": 260,
+        "content": "## Safety rules in this workflow\n- **Shadow mode** (Settings → shadowMode, default true): every email is checked and logged as would-prove / would-hold. Nothing marked paid, nobody emailed.\n- **Proven only**: payee (known names + saved account), amount exact to the cent, date in the pay window, reference, no job paid twice, every job that tech's. All pass, or a person decides.\n- **Never on a guess**: no memo → the ONE set of jobs that adds up exactly. None or two → person.\n- **Never twice**: message ID and confirmation # checked against the Proofing Log.\n- Every Gmail and Sheets node retries 3 times. Set an error workflow in Settings."
+      }
+    }
+  ],
+  "connections": {
+    "Every 15 minutes": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Settings": {
+      "main": [
+        [
+          {
+            "node": "Read pay run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read pay run": {
+      "main": [
+        [
+          {
+            "node": "Read payees",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read payees": {
+      "main": [
+        [
+          {
+            "node": "Read proofing log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read proofing log": {
+      "main": [
+        [
+          {
+            "node": "Get bank emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get bank emails": {
+      "main": [
+        [
+          {
+            "node": "Prove transfers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prove transfers": {
+      "main": [
+        [
+          {
+            "node": "Live and proven?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Live and needs a person?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Append to proofing log",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Live?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Live and proven?": {
+      "main": [
+        [
+          {
+            "node": "One item per job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One item per job": {
+      "main": [
+        [
+          {
+            "node": "Mark job paid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Live and needs a person?": {
+      "main": [
+        [
+          {
+            "node": "Add to Needs a Person",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add to Needs a Person": {
+      "main": [
+        [
+          {
+            "node": "Email a person",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Live?": {
+      "main": [
+        [
+          {
+            "node": "Add done label",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Denver",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "errorWorkflow": "REPLACE_WITH_ERROR_WORKFLOW_ID"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": [
+    {
+      "name": "summit-demo"
+    },
+    {
+      "name": "M4"
+    }
+  ]
+}

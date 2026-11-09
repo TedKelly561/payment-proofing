@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payment Proofing · Ted Kelly</title>
+<meta name="description" content="Every contractor bank transfer is matched to the jobs it paid (exact amount, right payee, right dates) before anything is marked paid. Mismatches and possible double payments go to a person. A demo by Ted Kelly with fictional data.">
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/demo.css">
+<link rel="stylesheet" href="app.css">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+</head>
+<body>
+
+<div class="demo-bar"><a href="https://tedkelly.dev/">← Ted Kelly</a><span class="pill">DEMO</span><span>Fictional company & data</span><span class="spacer"></span><a href="https://github.com/TedKelly561/payment-proofing">View code</a></div>
+
+<header class="app-head">
+  <div class="co">Summit Home Services · Office tools · M4</div>
+  <h1>Every contractor payment proven against the jobs it paid, before anything is marked paid.</h1>
+  <p>Each bank transfer confirmation is read and matched to the pay run: exact amount to the cent, the right payee, the right dates, the right reference, and no job paid twice. Proven transfers mark their jobs paid. Anything that doesn't add up goes to a person with the numbers and a suggested next step.</p>
+</header>
+
+<main class="wrap">
+
+  <!-- 1. Before / after -->
+  <section class="card ba" aria-labelledby="baTitle">
+    <div class="ba-k">
+      <h2 id="baTitle">What changes</h2>
+      <span class="chip">Illustrative</span>
+      <p class="small muted">Typical numbers for a 5-tech shop paying weekly or every two weeks. Not measured from a real client.</p>
+    </div>
+    <dl class="ba-list">
+      <div class="ba-i"><dt>Cross-checking each pay run</dt><dd><s>2 hours in a spreadsheet</s> <span aria-hidden="true">→</span><span class="sr-only">becomes</span> <b>5 minutes reviewing exceptions</b></dd></div>
+      <div class="ba-i"><dt>Double payments caught before they're marked paid</dt><dd><s>0</s> <span aria-hidden="true">→</span><span class="sr-only">becomes</span> <b>every one</b></dd></div>
+      <div class="ba-i"><dt>Jobs marked paid on a guess</dt><dd><s>a few each run</s> <span aria-hidden="true">→</span><span class="sr-only">becomes</span> <b>none: proven or a person decides</b></dd></div>
+      <div class="ba-i"><dt>Jobs never marked paid</dt><dd><s>found at tax time</s> <span aria-hidden="true">→</span><span class="sr-only">becomes</span> <b>shown as owed the same day</b></dd></div>
+    </dl>
+  </section>
+
+  <!-- 2. Mode + summary -->
+  <section class="card modebar" id="modebar" aria-label="Run mode and summary">
+    <div class="mode">
+      <label class="switch" for="shadow">
+        <input type="checkbox" id="shadow" role="switch" aria-describedby="shadowDesc">
+        <span class="track" aria-hidden="true"><span class="thumb"></span></span>
+        <span class="sw-label">Shadow mode <span class="sw-state" id="shadowState">ON</span></span>
+      </label>
+      <p id="shadowDesc" class="small"></p>
+    </div>
+    <dl class="counters" id="counters" aria-live="polite"></dl>
+    <div class="mode-acts">
+      <button type="button" class="btn" id="checkAll">Check all new transfers</button>
+      <button type="button" class="btn ghost small" id="resetAll">Reset demo</button>
+    </div>
+  </section>
+
+  <!-- 3. Inbox + pay run -->
+  <div class="proof">
+    <section class="card inbox-card" aria-labelledby="inboxTitle">
+      <div class="sec-head">
+        <h2 id="inboxTitle">Bank inbox</h2>
+        <span class="muted small" id="inboxSub"></span>
+      </div>
+      <p class="sec-intro small muted">Transfer confirmations from Cedar Ridge Bank for this pay run, in the order they arrived. Open one and check it, or press <b>Check all new transfers</b>. The real automation does this on its own every 15 minutes.</p>
+      <div class="inbox" id="inbox"></div>
+    </section>
+
+    <section class="card payrun-card" id="payrun" aria-labelledby="prTitle">
+      <div class="sec-head">
+        <h2 id="prTitle">Pay run</h2>
+        <span class="chip" id="prChip"></span>
+      </div>
+      <p class="pr-meta small" id="prMeta"></p>
+      <div class="pr-totals" id="prTotals" aria-live="polite"></div>
+      <div class="pr-table-wrap">
+        <table class="pr-table" id="prTable">
+          <caption class="sr-only">Jobs owed in this pay run, by technician, with what has been proven paid</caption>
+          <thead><tr><th scope="col">Job</th><th scope="col" class="num">Pay</th><th scope="col">Status</th></tr></thead>
+        </table>
+      </div>
+      <details class="aliases">
+        <summary>Known names and saved accounts</summary>
+        <p class="small muted">A bank shows whatever name was typed when the payee was saved. These are the only names that count as each tech. A name that isn't here never matches, however close it looks.</p>
+        <ul id="aliasList"></ul>
+      </details>
+    </section>
+  </div>
+
+  <!-- 4. Queues and log -->
+  <section class="card lists" id="lists" aria-label="Needs a person and activity log">
+    <div class="tabs" role="tablist" aria-label="Queues and log">
+      <button type="button" role="tab" id="tab-person" aria-controls="pane-person" data-tab="person">Needs a person <span class="chip" id="nPerson">0</span></button>
+      <button type="button" role="tab" id="tab-log" aria-controls="pane-log" data-tab="log">Activity log <span class="chip" id="nLog">0</span></button>
+    </div>
+    <div class="pane" role="tabpanel" id="pane-person" aria-labelledby="tab-person">
+      <div class="pane-h"><p class="muted small">Any transfer that isn't proven lands here with the email, the jobs it might cover, the difference and a suggested next step. A person approves it with a note, rejects it, or fixes what was read and re-runs the checks.</p></div>
+      <div id="person" class="person-list"></div>
+    </div>
+    <div class="pane" role="tabpanel" id="pane-log" aria-labelledby="tab-log" hidden>
+      <div class="pane-h"><p class="muted small">Every check, newest first, including skipped repeats and what it would have done in shadow mode. Saved in this browser.</p><button type="button" class="btn ghost small" id="clearLog">Clear log</button></div>
+      <ol id="log" class="log"></ol>
+    </div>
+  </section>
+
+  <!-- 5. Rules -->
+  <section class="card rules-card" aria-labelledby="rulesTitle">
+    <div class="sec-head"><h2 id="rulesTitle">The safety rules it follows</h2></div>
+    <ol class="rules" id="rules"></ol>
+  </section>
+
+  <!-- 6. Cost -->
+  <section class="card cost-card" aria-labelledby="costTitle">
+    <div class="sec-head"><h2 id="costTitle">What it costs to run</h2></div>
+    <div class="cost-grid">
+      <div class="cost-cell"><span class="c-k">Google Workspace version</span><b>$0</b><span class="c-s">Gmail, Google Sheets and Apps Script are included with Workspace, within Google's daily quotas. A pay run is a few dozen emails.</span></div>
+      <div class="cost-cell"><span class="c-k">AI needed</span><b>None</b><span class="c-s">The rules are exact: amounts to the cent, names from a table, dates in a window. Plain code, so the same email always gets the same answer.</span></div>
+      <div class="cost-cell"><span class="c-k">Optional AI reader</span><b>~1¢</b><span class="c-s">Only if your bank sends oddly formatted emails the regular reader can't parse: about a cent each to have a model pull out the fields. The checks stay the same.</span></div>
+      <div class="cost-cell"><span class="c-k">n8n instead</span><b>$5+/mo</b><span class="c-s">Self-hosted on a small server from about $5 a month, or n8n Cloud on a monthly plan. Pricing changes, so check n8n's current page.</span></div>
+    </div>
+    <p class="muted small cost-note">Ted builds it for a fixed price, then a monthly retainer covers running it: watching the Needs a person queue with you, adding names to the known-names table, adjusting the pay rule when it changes, and fixing what breaks when the bank changes its email format.</p>
+  </section>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<footer class="demo-foot">
+  Summit Home Services and Cedar Ridge Bank are fictional, and so is every name, account number, reference and confirmation number here. Account numbers are fake and masked (••••4821). Nothing is sent anywhere: the inbox, checks and pay run all run in your browser.
+  Built by <a href="https://tedkelly.dev/">Ted Kelly</a>. The same logic ships as a <a href="apps-script/payment-proofing.gs">Google Apps Script</a> and an <a href="n8n/m4-payment-proofing.json">importable n8n workflow</a>.
+</footer>
+
+<script src="shared/data.js"></script>
+<script src="engine.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
