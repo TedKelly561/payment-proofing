@@ -16,7 +16,7 @@
   const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // ---------------------------------------------------------------- state
-  let st, ui, busy = false, lastStatus = {};
+  let st, ui, busy = false, lastStatus = {}, runToken = 0;   // runToken: bumped by Reset to cancel a running Check all
   function load() {
     const saved = params.get('reset') === '1' ? null : store.get(KEY, null);
     // Dates are relative to today, so a save from another day starts fresh.
@@ -322,15 +322,18 @@
   async function checkAll() {
     if (busy) return;
     busy = true; renderMode();
+    const my = ++runToken;
     const ids = st.inbox.filter(e => !run().processed[e.id]).map(e => e.id);
     const delay = reduce() || params.get('fast') === '1' ? 0 : 650;
     const before = P.counts(st);
     for (const id of ids) {
+      if (my !== runToken) return;           // Reset was pressed: stop checking against the new state
       P.process(st, id);
       renderMode(); renderInbox(); renderPayRun();
       const el = document.getElementById('mail-' + id); if (el) { el.classList.add('flash'); }
       if (delay) await new Promise(res => setTimeout(res, delay));
     }
+    if (my !== runToken) return;
     busy = false;
     const c = P.counts(st);
     if (!st.shadow && c.held > before.held) ui.tab = 'person';
@@ -391,7 +394,7 @@
       render(); toast(st.shadow ? 'Shadow mode on: checks only, nothing marked paid' : 'Live: proven transfers mark jobs paid');
     });
     $('#checkAll').addEventListener('click', checkAll);
-    $('#resetAll').addEventListener('click', () => { const sh = st.shadow; st = P.createState({ shadow: sh }); ui = defaultUi(); lastStatus = {}; render(); toast('Demo reset'); });
+    $('#resetAll').addEventListener('click', () => { runToken++; busy = false; const sh = st.shadow; st = P.createState({ shadow: sh }); ui = defaultUi(); lastStatus = {}; render(); toast('Demo reset'); });
     $('#clearLog').addEventListener('click', () => { st.log = []; render(); toast('Log cleared'); });
     $('.tabs').addEventListener('keydown', e => {
       if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
